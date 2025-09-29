@@ -179,30 +179,47 @@ def main():
     application.add_handler(CommandHandler("quiz", bot.quiz))
     application.add_handler(CallbackQueryHandler(bot.button_callback))
 
-    # Start the bot
+    # Start the bot with conflict handling
     print("🇮🇹 Italian Learning Bot is starting...")
-    print("⏳ Waiting 3 seconds for webhook cleanup...")
+    print("⏳ Waiting 5 seconds for webhook cleanup...")
     import time
-    time.sleep(3)
+    time.sleep(5)
     
-    try:
-        print("🚀 Starting bot with polling...")
-        application.run_polling(
-            drop_pending_updates=True,
-            allowed_updates=Update.ALL_TYPES
-        )
-    except Exception as e:
-        print(f"❌ Error starting bot: {e}")
-        print("🔄 Trying alternative startup method...")
+    # Try multiple times with delays
+    max_retries = 3
+    for attempt in range(max_retries):
         try:
+            print(f"🚀 Starting bot with polling... (Attempt {attempt + 1}/{max_retries})")
             application.run_polling(
                 drop_pending_updates=True,
                 allowed_updates=Update.ALL_TYPES,
-                close_loop=False
+                timeout=30,
+                read_timeout=30,
+                write_timeout=30,
+                connect_timeout=30,
+                pool_timeout=30
             )
-        except Exception as e2:
-            print(f"❌ Final error: {e2}")
-            print("💡 Try manually deleting webhook at: https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook")
+            break  # If successful, exit the loop
+        except Exception as e:
+            print(f"❌ Attempt {attempt + 1} failed: {e}")
+            if "Conflict" in str(e) or "409" in str(e):
+                print("🔄 Conflict detected. Waiting 10 seconds before retry...")
+                time.sleep(10)
+                if attempt < max_retries - 1:
+                    print("🔄 Retrying...")
+                    continue
+                else:
+                    print("❌ All attempts failed due to conflicts.")
+                    print("💡 Solutions:")
+                    print("   1. Stop all other bot instances")
+                    print("   2. Wait 30 seconds and try again")
+                    print("   3. Check if bot is running elsewhere (Heroku, Railway, etc.)")
+                    print("💡 Manual webhook deletion:")
+                    print(f"   https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook")
+                    break
+            else:
+                print(f"❌ Unexpected error: {e}")
+                break
 
 if __name__ == '__main__':
     main()
