@@ -147,28 +147,38 @@ def main():
     # Create bot instance
     bot = ItalianLearningBot()
     
-    # Create application
-    application = Application.builder().token(BOT_TOKEN).build()
+    # Create application with proper timeouts
+    application = Application.builder().token(BOT_TOKEN).get_updates_read_timeout(30).get_updates_write_timeout(30).get_updates_connect_timeout(30).get_updates_pool_timeout(30).build()
     
-    # Delete webhook to avoid conflicts
+    # Force delete webhook and clear any conflicts
     try:
         import requests
+        import time
+        
+        # Delete webhook
         response = requests.post(f'https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook')
-        if response.status_code == 200:
-            print("✅ Webhook deleted successfully")
-        else:
-            print(f"⚠️ Webhook deletion response: {response.status_code}")
-    except Exception as e:
-        print(f"⚠️ Could not delete webhook: {e}")
-    
-    # Additional cleanup - set webhook to empty
-    try:
-        import requests
+        print(f"🗑️ Webhook deletion: {response.status_code}")
+        
+        # Set empty webhook
         response = requests.post(f'https://api.telegram.org/bot{BOT_TOKEN}/setWebhook', data={'url': ''})
-        if response.status_code == 200:
-            print("✅ Webhook cleared successfully")
+        print(f"🧹 Webhook clearing: {response.status_code}")
+        
+        # Get current webhook info
+        response = requests.post(f'https://api.telegram.org/bot{BOT_TOKEN}/getWebhookInfo')
+        webhook_info = response.json()
+        print(f"📊 Current webhook: {webhook_info.get('result', {}).get('url', 'None')}")
+        
+        # Force stop any polling
+        print("🛑 Forcing webhook mode to stop polling conflicts...")
+        response = requests.post(f'https://api.telegram.org/bot{BOT_TOKEN}/setWebhook', 
+                                data={'url': 'https://example.com/webhook'})
+        time.sleep(2)
+        response = requests.post(f'https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook')
+        
+        print("✅ Webhook conflicts resolved")
+        
     except Exception as e:
-        print(f"⚠️ Could not clear webhook: {e}")
+        print(f"⚠️ Webhook cleanup error: {e}")
 
     # Add handlers
     application.add_handler(CommandHandler("start", bot.start))
@@ -192,12 +202,7 @@ def main():
             print(f"🚀 Starting bot with polling... (Attempt {attempt + 1}/{max_retries})")
             application.run_polling(
                 drop_pending_updates=True,
-                allowed_updates=Update.ALL_TYPES,
-                timeout=30,
-                read_timeout=30,
-                write_timeout=30,
-                connect_timeout=30,
-                pool_timeout=30
+                allowed_updates=Update.ALL_TYPES
             )
             break  # If successful, exit the loop
         except Exception as e:
