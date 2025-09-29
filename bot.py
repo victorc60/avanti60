@@ -149,6 +149,14 @@ def main():
     
     # Create application
     application = Application.builder().token(BOT_TOKEN).build()
+    
+    # Delete webhook to avoid conflicts
+    try:
+        import requests
+        requests.post(f'https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook')
+        print("✅ Webhook deleted successfully")
+    except Exception as e:
+        print(f"⚠️ Could not delete webhook: {e}")
 
     # Add handlers
     application.add_handler(CommandHandler("start", bot.start))
