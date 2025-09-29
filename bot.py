@@ -161,7 +161,12 @@ def main():
 
     # Start the bot
     print("🇮🇹 Italian Learning Bot is starting...")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    try:
+        application.run_polling()
+    except Exception as e:
+        print(f"Error starting bot: {e}")
+        print("Trying alternative startup method...")
+        application.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
     main()
