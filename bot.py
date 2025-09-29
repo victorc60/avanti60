@@ -153,10 +153,22 @@ def main():
     # Delete webhook to avoid conflicts
     try:
         import requests
-        requests.post(f'https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook')
-        print("✅ Webhook deleted successfully")
+        response = requests.post(f'https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook')
+        if response.status_code == 200:
+            print("✅ Webhook deleted successfully")
+        else:
+            print(f"⚠️ Webhook deletion response: {response.status_code}")
     except Exception as e:
         print(f"⚠️ Could not delete webhook: {e}")
+    
+    # Additional cleanup - set webhook to empty
+    try:
+        import requests
+        response = requests.post(f'https://api.telegram.org/bot{BOT_TOKEN}/setWebhook', data={'url': ''})
+        if response.status_code == 200:
+            print("✅ Webhook cleared successfully")
+    except Exception as e:
+        print(f"⚠️ Could not clear webhook: {e}")
 
     # Add handlers
     application.add_handler(CommandHandler("start", bot.start))
@@ -169,12 +181,28 @@ def main():
 
     # Start the bot
     print("🇮🇹 Italian Learning Bot is starting...")
+    print("⏳ Waiting 3 seconds for webhook cleanup...")
+    import time
+    time.sleep(3)
+    
     try:
-        application.run_polling()
+        print("🚀 Starting bot with polling...")
+        application.run_polling(
+            drop_pending_updates=True,
+            allowed_updates=Update.ALL_TYPES
+        )
     except Exception as e:
-        print(f"Error starting bot: {e}")
-        print("Trying alternative startup method...")
-        application.run_polling(drop_pending_updates=True)
+        print(f"❌ Error starting bot: {e}")
+        print("🔄 Trying alternative startup method...")
+        try:
+            application.run_polling(
+                drop_pending_updates=True,
+                allowed_updates=Update.ALL_TYPES,
+                close_loop=False
+            )
+        except Exception as e2:
+            print(f"❌ Final error: {e2}")
+            print("💡 Try manually deleting webhook at: https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook")
 
 if __name__ == '__main__':
     main()
