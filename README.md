@@ -1,6 +1,6 @@
-# 🇮🇹 Italian Learning Telegram Bot
+# 🇮🇹 Italian Learning Telegram Bot (Node.js)
 
-A simple Telegram bot to help users learn Italian language with vocabulary, numbers, colors, and interactive quizzes.
+A modern Node.js Telegram bot to help users learn Italian language with vocabulary, numbers, colors, interactive quizzes, and ChatGPT integration.
 
 ## Features
 
@@ -22,7 +22,7 @@ A simple Telegram bot to help users learn Italian language with vocabulary, numb
 ### 2. Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+npm install
 ```
 
 ### 3. Configure Environment
@@ -32,15 +32,21 @@ pip install -r requirements.txt
    cp env_example.txt .env
    ```
 
-2. Edit `.env` file and add your bot token:
+2. Edit `.env` file and add your tokens:
    ```
    BOT_TOKEN=your_actual_bot_token_here
+   OPENAI_API_KEY=your_openai_api_key_here
    ```
 
 ### 4. Run the Bot
 
 ```bash
-python bot.py
+npm start
+```
+
+Or for development with auto-restart:
+```bash
+npm run dev
 ```
 
 ## Bot Commands
@@ -56,10 +62,10 @@ python bot.py
 
 ```
 ItalTutor/
-├── bot.py              # Main bot file
-├── config.py           # Configuration and token handling
-├── requirements.txt     # Python dependencies
-├── env_example.txt      # Environment variables template
+├── bot.js              # Main bot file
+├── config.js           # Configuration and token handling
+├── package.json        # Node.js dependencies and scripts
+├── env_example.txt     # Environment variables template
 └── README.md           # This file
 ```
 
@@ -82,9 +88,10 @@ You can easily extend the bot by:
 
 ## Requirements
 
-- Python 3.7+
-- python-telegram-bot library
+- Node.js 16.0.0 or higher
+- npm (comes with Node.js)
 - A Telegram bot token from BotFather
+- OpenAI API key (optional, for ChatGPT features)
 
 ## License
 
