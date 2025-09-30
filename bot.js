@@ -9,15 +9,34 @@ const OpenAI = require('openai');
 const axios = require('axios');
 const config = require('./config');
 
-// Initialize bot
-const bot = new TelegramBot(config.BOT_TOKEN, { polling: true });
+// Initialize bot with better error handling
+console.log('🔧 Initializing bot...');
+console.log('📡 Bot Token:', config.BOT_TOKEN ? `${config.BOT_TOKEN.substring(0, 10)}...` : 'NOT SET');
+console.log('🤖 OpenAI API Key:', config.OPENAI_API_KEY ? `${config.OPENAI_API_KEY.substring(0, 10)}...` : 'NOT SET');
+
+const bot = new TelegramBot(config.BOT_TOKEN, { 
+  polling: {
+    interval: 1000,
+    autoStart: true,
+    params: {
+      timeout: 10
+    }
+  }
+});
 
 // Initialize OpenAI client
 let openaiClient = null;
 if (config.OPENAI_API_KEY) {
-  openaiClient = new OpenAI({
-    apiKey: config.OPENAI_API_KEY
-  });
+  try {
+    openaiClient = new OpenAI({
+      apiKey: config.OPENAI_API_KEY
+    });
+    console.log('✅ OpenAI client initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize OpenAI client:', error.message);
+  }
+} else {
+  console.warn('⚠️ OpenAI API key not provided. ChatGPT features will be disabled.');
 }
 
 // User data storage (in production, use a database)
@@ -535,6 +554,56 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
+// Test API connections
+async function testConnections() {
+  try {
+    // Test Telegram API
+    console.log('🔍 Testing Telegram API connection...');
+    const me = await bot.getMe();
+    console.log('✅ Telegram API connected successfully');
+    console.log(`🤖 Bot username: @${me.username}`);
+    console.log(`📛 Bot name: ${me.first_name}`);
+    
+    // Test OpenAI API if available
+    if (openaiClient) {
+      console.log('🔍 Testing OpenAI API connection...');
+      try {
+        const response = await openaiClient.chat.completions.create({
+          model: 'gpt-3.5-turbo',
+          messages: [{ role: 'user', content: 'Hello' }],
+          max_tokens: 5
+        });
+        console.log('✅ OpenAI API connected successfully');
+      } catch (error) {
+        console.error('❌ OpenAI API test failed:', error.message);
+      }
+    }
+    
+    // Send startup notification to admin (optional)
+    // You can add your Telegram user ID here to get notified when bot starts
+    // const adminId = 'YOUR_TELEGRAM_USER_ID';
+    // bot.sendMessage(adminId, '🇮🇹 Italian Learning Bot is now online!');
+    
+  } catch (error) {
+    console.error('❌ Connection test failed:', error.message);
+    if (error.code === 'ETELEGRAM' && error.response?.body?.error_code === 409) {
+      console.error('🚨 CONFLICT DETECTED: Another bot instance is running!');
+      console.error('💡 Solutions:');
+      console.error('   1. Stop all other bot instances');
+      console.error('   2. Wait 30 seconds and restart');
+      console.error('   3. Check if bot is deployed elsewhere');
+      process.exit(1);
+    }
+  }
+}
+
 // Start the bot
 console.log('🇮🇹 Italian Learning Bot is starting...');
-console.log('✅ Bot is running! Press Ctrl+C to stop.');
+console.log('⏳ Testing API connections...');
+
+testConnections().then(() => {
+  console.log('✅ Bot is running! Press Ctrl+C to stop.');
+}).catch((error) => {
+  console.error('❌ Failed to start bot:', error.message);
+  process.exit(1);
+});
